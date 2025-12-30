@@ -32,7 +32,18 @@ const start = async () => {
       return { status: 'ok', service: 'proofpay-api' };
     });
 
-    // Square webhook route
+    // Square webhook route - GET handler (for testing/verification)
+    fastify.get('/v1/webhooks/square', async (request, reply) => {
+      return reply.code(200).send({
+        message: 'Square webhook endpoint is active',
+        method: 'This endpoint accepts POST requests only',
+        webhookUrl: 'http://localhost:4000/v1/webhooks/square',
+        instructions: 'Square will send POST requests to this URL when payment events occur',
+        status: 'ready'
+      });
+    });
+
+    // Square webhook route - POST handler (actual webhook processing)
     // ⚠️ IMPORTANT: This route MUST NOT require authentication
     // Square webhooks are sent from Square's servers and do not include auth tokens
     // This route is explicitly public and bypasses any authentication middleware
