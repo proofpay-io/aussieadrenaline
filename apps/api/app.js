@@ -32,6 +32,107 @@ const start = async () => {
       return { status: 'ok', service: 'proofpay-api' };
     });
 
+    // Receipts API endpoints
+    // GET /api/receipts - List all receipts
+    fastify.get('/api/receipts', async (request, reply) => {
+      try {
+        if (!supabase) {
+          return reply.code(503).send({
+            error: 'Database not configured',
+            message: 'Supabase connection is not available'
+          });
+        }
+
+        fastify.log.info('📋 Fetching all receipts');
+
+        // Fetch receipts with their items
+        const { data: receipts, error: receiptsError } = await supabase
+          .from('receipts')
+          .select(`
+            *,
+            receipt_items (*)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (receiptsError) {
+          fastify.log.error('❌ Error fetching receipts:', receiptsError);
+          return reply.code(500).send({
+            error: 'Database error',
+            message: receiptsError.message
+          });
+        }
+
+        fastify.log.info(`✅ Found ${receipts?.length || 0} receipts`);
+        
+        return reply.code(200).send({
+          success: true,
+          count: receipts?.length || 0,
+          receipts: receipts || []
+        });
+      } catch (error) {
+        fastify.log.error('❌ Error in GET /api/receipts:', error);
+        return reply.code(500).send({
+          error: 'Internal server error',
+          message: error.message
+        });
+      }
+    });
+
+    // GET /api/receipts/:id - Get a specific receipt by ID
+    fastify.get('/api/receipts/:id', async (request, reply) => {
+      try {
+        if (!supabase) {
+          return reply.code(503).send({
+            error: 'Database not configured',
+            message: 'Supabase connection is not available'
+          });
+        }
+
+        const receiptId = request.params.id;
+        fastify.log.info('📋 Fetching receipt', { receiptId });
+
+        // Fetch receipt with its items
+        const { data: receipt, error: receiptError } = await supabase
+          .from('receipts')
+          .select(`
+            *,
+            receipt_items (*)
+          `)
+          .eq('id', receiptId)
+          .single();
+
+        if (receiptError) {
+          if (receiptError.code === 'PGRST116') {
+            // No rows returned
+            fastify.log.warn('⚠️ Receipt not found', { receiptId });
+            return reply.code(404).send({
+              error: 'Receipt not found',
+              message: `No receipt found with ID: ${receiptId}`
+            });
+          }
+          
+          fastify.log.error('❌ Error fetching receipt:', receiptError);
+          return reply.code(500).send({
+            error: 'Database error',
+            message: receiptError.message
+          });
+        }
+
+        fastify.log.info('✅ Receipt fetched successfully', { receiptId });
+        
+        return reply.code(200).send({
+          success: true,
+          receipt: receipt
+        });
+      } catch (error) {
+        fastify.log.error('❌ Error in GET /api/receipts/:id:', error);
+        return reply.code(500).send({
+          error: 'Internal server error',
+          message: error.message
+        });
+      }
+    });
+
     // Square webhook route - GET handler (for testing/verification)
     fastify.get('/v1/webhooks/square', async (request, reply) => {
       return reply.code(200).send({
