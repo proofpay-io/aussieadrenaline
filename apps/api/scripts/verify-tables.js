@@ -46,8 +46,57 @@ async function verifyTables() {
       throw itemsError;
     }
 
-    console.log('✅ receipt_items table exists\n');
-    console.log('🎉 All tables verified successfully!');
+    console.log('✅ receipt_items table exists');
+
+    // Try to query the receipt_events table
+    const { data: eventsData, error: eventsError } = await supabase
+      .from('receipt_events')
+      .select('id')
+      .limit(1);
+
+    if (eventsError) {
+      if (eventsError.code === 'PGRST116' || eventsError.message?.includes('schema cache')) {
+        console.log('⚠️  receipt_events table does not exist (optional - run migration 003)');
+      } else {
+        throw eventsError;
+      }
+    } else {
+      console.log('✅ receipt_events table exists');
+    }
+
+    // Try to query the disputes table
+    const { data: disputesData, error: disputesError } = await supabase
+      .from('disputes')
+      .select('id')
+      .limit(1);
+
+    if (disputesError) {
+      if (disputesError.code === 'PGRST116' || disputesError.message?.includes('schema cache')) {
+        console.log('⚠️  disputes table does not exist (optional - run migration 003)');
+      } else {
+        throw disputesError;
+      }
+    } else {
+      console.log('✅ disputes table exists');
+    }
+
+    // Try to query the dispute_items table
+    const { data: disputeItemsData, error: disputeItemsError } = await supabase
+      .from('dispute_items')
+      .select('id')
+      .limit(1);
+
+    if (disputeItemsError) {
+      if (disputeItemsError.code === 'PGRST116' || disputeItemsError.message?.includes('schema cache')) {
+        console.log('⚠️  dispute_items table does not exist (optional - run migration 003)');
+      } else {
+        throw disputeItemsError;
+      }
+    } else {
+      console.log('✅ dispute_items table exists');
+    }
+
+    console.log('\n🎉 All tables verified successfully!');
     console.log('   You can now view them in Supabase Dashboard → Table Editor');
 
   } catch (error) {
